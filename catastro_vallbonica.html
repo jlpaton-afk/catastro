@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Catastro · Vallbonica</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,sans-serif;background:#f5f4f0;color:#1a1a18;font-size:15px;min-height:100vh}
+header{background:#fff;border-bottom:0.5px solid #ddd;padding:.85rem 1.5rem;display:flex;align-items:center;gap:12px}
+header h1{font-size:16px;font-weight:500}
+header small{font-size:12px;color:#888;margin-left:4px}
+.wrap{max-width:1120px;margin:0 auto;padding:1.5rem}
+.card{background:#fff;border-radius:10px;border:0.5px solid #ddd;padding:1.25rem;margin-bottom:1rem}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:1rem}
+.stat{background:#f5f4f0;border-radius:8px;padding:.85rem 1rem}
+.stat-lbl{font-size:11px;color:#888;margin-bottom:3px;text-transform:uppercase;letter-spacing:.04em}
+.stat-val{font-size:20px;font-weight:500;line-height:1}
+button{border:0.5px solid #bbb;border-radius:6px;padding:8px 18px;font-size:14px;background:#fff;cursor:pointer;transition:background .15s}
+button:hover{background:#ededea}
+button:active{transform:scale(.98)}
+button.primary{background:#1a1a18;color:#fff;border-color:#1a1a18}
+button.primary:hover{background:#333}
+button.danger{background:#fff;color:#a32d2d;border-color:#e09090}
+button.danger:hover{background:#fcebeb}
+button:disabled{opacity:.4;cursor:default;transform:none}
+.progress-bar{height:5px;background:#eee;border-radius:3px;overflow:hidden;margin:12px 0 6px}
+.progress-fill{height:100%;background:#1a1a18;border-radius:3px;transition:width .25s}
+.logline{font-size:12px;color:#888;min-height:18px}
+table{width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed}
+th{text-align:left;padding:8px 10px;border-bottom:1px solid #eee;font-size:11px;font-weight:500;color:#888;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap}
+td{padding:8px 10px;border-bottom:0.5px solid #f0f0ec;vertical-align:middle;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#fafaf7}
+.mono{font-family:monospace;font-size:12px;background:#f0efe9;padding:2px 6px;border-radius:4px}
+.mono-dim{font-family:monospace;font-size:12px;color:#ccc}
+a.ext{color:#185fa5;text-decoration:none;font-size:12px}
+a.ext:hover{text-decoration:underline}
+.toolbar{display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+.toolbar input[type=text]{border:0.5px solid #ccc;border-radius:6px;padding:6px 10px;font-size:13px;outline:none;width:200px}
+.toolbar input[type=text]:focus{border-color:#888}
+.spacer{flex:1}
+.pending{color:#ccc;font-size:12px}
+.prorrateosec{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:1rem 1.25rem;background:#f5f4f0;border-radius:8px;margin-bottom:1rem}
+.prorrateosec label{font-size:13px;color:#555;white-space:nowrap}
+.prorrateosec input{border:0.5px solid #ccc;border-radius:6px;padding:7px 10px;font-size:14px;width:180px;outline:none}
+.prorrateosec input:focus{border-color:#888}
+.toast{position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%);background:#1a1a18;color:#fff;padding:10px 20px;border-radius:8px;font-size:13px;z-index:99;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.show{opacity:1}
+.toast.err{background:#a32d2d}
+.cache-badge{font-size:11px;background:#e1f5ee;color:#0f6e56;padding:3px 8px;border-radius:4px;margin-left:8px}
+td.coste{text-align:right;font-weight:500;color:#185fa5}
+th[onclick]{user-select:none}
+th[onclick]:hover{background:#fafaf7;color:#1a1a18}
+th[onclick] span::after{content:' ⇅';font-size:10px;color:#ccc}
+th.sort-asc span::after{content:' ↑';font-size:11px;color:#1a1a18}
+th.sort-desc span::after{content:' ↓';font-size:11px;color:#1a1a18}
+</style>
+</head>
+<body>
+
+<header>
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+  <h1>Catastro · Urbanización Vallbonica <small>Vallbona d'Anoia · Barcelona · 108 parcelas</small></h1>
+  <span id="cache-badge" style="display:none" class="cache-badge">Datos cargados de caché</span>
+</header>
+
+<div class="wrap">
+
+  <!-- CONSULTA -->
+  <div class="card">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <button class="primary" id="btn-start" onclick="startAll()">▶ Consultar las 108 parcelas</button>
+      <button id="btn-stop" onclick="stopAll()" disabled>■ Detener</button>
+      <button class="danger" onclick="clearCache()" style="margin-left:auto">Borrar caché</button>
+      <span id="pct" style="font-size:13px;color:#888"></span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="pbar" style="width:0%"></div></div>
+    <div class="logline" id="logline">Pulsa el botón para iniciar la consulta al Catastro.</div>
+  </div>
+
+  <!-- ESTADÍSTICAS -->
+  <div class="stats">
+    <div class="stat"><div class="stat-lbl">Total parcelas</div><div class="stat-val">108</div></div>
+    <div class="stat"><div class="stat-lbl">Consultadas</div><div class="stat-val" id="s-done">0</div></div>
+    <div class="stat"><div class="stat-lbl">Sup. total</div><div class="stat-val" id="s-sup">—</div></div>
+    <div class="stat"><div class="stat-lbl">Coste total prorrateado</div><div class="stat-val" id="s-coste">—</div></div>
+  </div>
+
+  <!-- PRORRATEO -->
+  <div class="prorrateosec">
+    <label>Importe a prorratear (€):</label>
+    <input type="number" id="importe" min="0" step="0.01" placeholder="Ej: 150000">
+    <button class="primary" onclick="prorratear()">Prorratear</button>
+    <span style="font-size:12px;color:#888">El importe se distribuye proporcionalmente según m² de cada parcela.</span>
+  </div>
+
+  <!-- TABLA -->
+  <div class="card">
+    <div class="toolbar">
+      <input type="text" id="filter" placeholder="Filtrar ref. o dirección…" oninput="applyFilter()">
+      <div class="spacer"></div>
+      <button onclick="exportCSV()">Exportar CSV</button>
+      <button onclick="exportTXT()">Exportar TXT</button>
+    </div>
+    <div style="overflow-x:auto">
+      <table>
+        <colgroup>
+          <col style="width:34px">
+          <col style="width:162px">
+          <col>
+          <col style="width:95px">
+          <col style="width:120px">
+          <col style="width:60px">
+          <col style="width:120px">
+          <col style="width:50px">
+        </colgroup>
+        <thead>
+          <tr>
+            <th onclick="sortBy('idx')" style="cursor:pointer" title="Ordenar por nº"><span id="sh-idx">#</span></th>
+            <th onclick="sortBy('rc')" style="cursor:pointer" title="Ordenar por referencia"><span id="sh-rc">Ref. catastral</span></th>
+            <th onclick="sortBy('dir')" style="cursor:pointer" title="Ordenar por dirección"><span id="sh-dir">Dirección</span></th>
+            <th onclick="sortBy('uso')" style="cursor:pointer" title="Ordenar por uso"><span id="sh-uso">Uso</span></th>
+            <th onclick="sortBy('supPar')" style="cursor:pointer;text-align:right" title="Ordenar por superficie"><span id="sh-supPar">Sup. parcela m²</span></th>
+            <th onclick="sortBy('ant')" style="cursor:pointer;text-align:right" title="Ordenar por año"><span id="sh-ant">Año</span></th>
+            <th onclick="sortBy('coste')" style="cursor:pointer;text-align:right" title="Ordenar por coste"><span id="sh-coste">Coste obra (€)</span></th>
+            <th style="text-align:center">Ficha</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const RCS = ["2881801CF9928S","2780003CF9928S","2780002CF9928S","2780001CF9928S","2983028CF9928S","2983027CF9928S","2881803CF9928S","2983026CF9928S","2983025CF9928S","2881802CF9928S","2881805CF9928S","2881804CF9928S","2780007CF9928S","2780006CF9928S","2780005CF9928S","2780004CF9928S","2881806CF9928S","2780012CF9928S","2780011CF9928S","2780010CF9928S","2780009CF9928S","2780008CF9928S","2984016CF9928S","2984017CF9928S","2983031CF9928S","2983030CF9928S","2983029CF9928S","2781013CF9928S","2680011CF9928S","2781014CF9928S","2680010CF9928S","2781015CF9928S","2781016CF9928S","2781017CF9928S","2780016CF9928S","2780015CF9928S","2780014CF9928S","2780013CF9928S","2781007CF9928S","2781006CF9928S","2781020CF9928S","2780018CF9928S","2781019CF9928S","2780017CF9928S","2781010CF9928S","2781001CF9928S","2781002CF9928S","2781003CF9928S","2881807CF9928S","2781004CF9928S","2781018CF9928S","2680013CF9928S","2781011CF9928S","2781012CF9928S","2680012CF9928S","2679003CF9927N","2680017CF9928S","2679002CF9927N","2680015CF9928S","2679001CF9927N","2680014CF9928S","2883328CF9928S","2682403CF9928S","2883327CF9928S","2682402CF9928S","2682401CF9928S","2682406CF9928S","2883331CF9928S","2682405CF9928S","2883330CF9928S","2682404CF9928S","2883329CF9928S","2680003CF9928S","2680002CF9928S","2680021CF9928S","2680001CF9928S","2680004CF9928S","2680005CF9928S","2680006CF9928S","2682410CF9928S","2682409CF9928S","2682408CF9928S","2682407CF9928S","2680009CF9928S","2581501CF9928S","2581503CF9928S","2680008CF9928S","2680007CF9928S","2679007CF9927N","2680019CF9928S","2679011CF9927N","2680018CF9928S","2680801CF9928S","2581506CF9928S","2581505CF9928S","2581504CF9928S","2680805CF9928S","2680804CF9928S","2580002CF9928S","2680803CF9928S","2580001CF9928S","2680802CF9928S","2680808CF9928S","2581508CF9928S","2580004CF9928S","2580005CF9928S","2581507CF9928S"];
+
+const PRO = "08", MUN = "292";
+const CACHE_KEY = "catastro_vallbonica_v1";
+let results = new Array(RCS.length).fill(null);
+let running = false, stopped = false;
+let importeProrrateo = 0;
+
+// ── CACHÉ ──────────────────────────────────────────────
+function saveCache(){
+  try{ localStorage.setItem(CACHE_KEY, JSON.stringify(results)); } catch(e){}
+}
+function loadCache(){
+  try{
+    const raw = localStorage.getItem(CACHE_KEY);
+    if(!raw) return false;
+    const data = JSON.parse(raw);
+    if(!Array.isArray(data) || data.length !== RCS.length) return false;
+    results = data;
+    return true;
+  }catch(e){ return false; }
+}
+function clearCache(){
+  localStorage.removeItem(CACHE_KEY);
+  results = new Array(RCS.length).fill(null);
+  importeProrrateo = 0;
+  document.getElementById('importe').value = '';
+  document.getElementById('cache-badge').style.display = 'none';
+  document.getElementById('s-done').textContent = '0';
+  document.getElementById('s-sup').textContent = '—';
+  document.getElementById('s-coste').textContent = '—';
+  setPct(0,'');
+  initTable();
+  log('Caché borrada. Puedes volver a consultar.');
+  toast('Caché borrada');
+}
+
+// ── UI HELPERS ─────────────────────────────────────────
+function log(t){ document.getElementById('logline').textContent = t; }
+function setPct(n,t){ document.getElementById('pbar').style.width=n+'%'; document.getElementById('pct').textContent=t; }
+
+let toastTimer;
+function toast(msg, isErr=false){
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'toast show' + (isErr?' err':'');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>{ el.className='toast'; }, 3000);
+}
+
+// ── CONSULTA ───────────────────────────────────────────
+function stopAll(){
+  stopped=true; running=false;
+  document.getElementById('btn-stop').disabled=true;
+  log('Consulta detenida.');
+}
+
+async function startAll(){
+  if(running) return;
+  running=true; stopped=false;
+  results = new Array(RCS.length).fill(null);
+  importeProrrateo=0;
+  document.getElementById('importe').value='';
+  document.getElementById('s-coste').textContent='—';
+  document.getElementById('btn-start').disabled=true;
+  document.getElementById('btn-stop').disabled=false;
+  initTable();
+
+  for(let i=0; i<RCS.length; i++){
+    if(stopped) break;
+    const rc = RCS[i];
+    log(`Consultando ${i+1}/${RCS.length}: ${rc}…`);
+    setPct(Math.round((i/RCS.length)*100), `${i}/${RCS.length}`);
+    const d = await fetchRC(rc);
+    results[i] = d;
+    document.getElementById('s-done').textContent = results.filter(Boolean).length;
+    updateStats();
+    updateRow(i, d);
+    logConsole(i+1, d);
+    await sleep(200);
+  }
+
+  saveCache();
+  setPct(100,`${RCS.length}/${RCS.length}`);
+  log('Consulta completada y guardada en caché. Puedes exportar o prorratear.');
+  running=false;
+  document.getElementById('btn-start').disabled=false;
+  document.getElementById('btn-stop').disabled=true;
+  toast('Consulta completada · datos guardados');
+  logConsoleResumen();
+}
+
+// ── PRORRATEO ──────────────────────────────────────────
+function prorratear(){
+  const consultadas = results.filter(r => r && !r.err && r.supPar > 0).length;
+  const total = RCS.length;
+
+  if(consultadas < total){
+    toast(`Faltan ${total - consultadas} parcelas por consultar. Completa la consulta primero.`, true);
+    return;
+  }
+
+  const importeStr = document.getElementById('importe').value.trim();
+  const importe = parseFloat(importeStr.replace(',','.'));
+  if(!importeStr || isNaN(importe) || importe <= 0){
+    toast('Introduce un importe válido mayor que 0.', true);
+    return;
+  }
+
+  importeProrrateo = importe;
+  const tSup = results.reduce((a,r) => a + (r && !r.err ? r.supPar : 0), 0);
+
+  results.forEach((d,i) => {
+    if(!d || d.err || !d.supPar) { if(d) d.coste=0; return; }
+    d.coste = (d.supPar / tSup) * importe;
+  });
+
+  saveCache();
+  rebuildTable();
+  updateStats();
+  toast(`Importe de ${fmtEur(importe)} prorrateado entre ${consultadas} parcelas`);
+}
+
+// ── FETCH ──────────────────────────────────────────────
+async function fetchRC(rc){
+  const urlWFS  = `https://ovc.catastro.meh.es/INSPIRE/wfsCP.aspx?service=wfs&version=2&request=getfeature&STOREDQUERIE_ID=GetParcel&srsname=EPSG:4326&REFCAT=${rc}`;
+  const urlAsmx = `https://ovc.catastro.meh.es/ovcservweb/OVCSWLocalizacionRC/OVCCallejeroCodigos.asmx/Consulta_DNPRC_Codigos?CodigoProvincia=${PRO}&CodigoMunicipio=${MUN}&CodigoMunicipioINE=&RC=${rc}`;
+  try{
+    const [rWFS, rAsmx] = await Promise.all([fetch(urlWFS), fetch(urlAsmx)]);
+    const [txtWFS, txtAsmx] = await Promise.all([rWFS.text(), rAsmx.text()]);
+    console.debug(`[${rc}] WFS:`, txtWFS);
+    console.debug(`[${rc}] ASMX:`, txtAsmx);
+    return parseResults(rc, txtWFS, txtAsmx);
+  }catch(e){
+    return {rc, err:'Red/CORS', supPar:0, dir:'—', uso:'—', ant:'—', coste:0};
+  }
+}
+
+function parseResults(rc, txtWFS, txtAsmx){
+  const xWFS = new DOMParser().parseFromString(txtWFS,'application/xml');
+  const areaEl = xWFS.querySelector('areaValue');
+  const supPar = areaEl ? parseFloat(areaEl.textContent.trim()) : 0;
+
+  const xA = new DOMParser().parseFromString(txtAsmx,'application/xml');
+  const gA = t => { const e=xA.querySelector(t); return e?e.textContent.trim():''; };
+  let dir = gA('ldt') || [gA('tv'),gA('nv'),gA('pnp')].filter(Boolean).join(' ') || '—';
+  const uso = normUso(gA('luso')||gA('cn'));
+  const ant = gA('ant') || '—';
+
+  // RC completa de 20 chars: pc1+pc2+car+cc1+cc2
+  const pc1=gA('pc1'), pc2=gA('pc2'), car=gA('car'), cc1=gA('cc1'), cc2=gA('cc2');
+  const rcFull = (pc1&&pc2&&car&&cc1&&cc2) ? pc1+pc2+car+cc1+cc2 : rc;
+
+  const errEl = xA.querySelector('err des');
+  if(!supPar && errEl) return {rc, rcFull:rc, err:errEl.textContent.trim(), supPar:0, dir:'—', uso:'—', ant:'—', coste:0};
+
+  return {rc, rcFull, dir, uso, supPar, ant, coste:0};
+}
+
+function normUso(u){
+  if(!u) return '—';
+  const l=u.toLowerCase();
+  if(l.includes('resid')||l==='v') return 'Residencial';
+  if(l.includes('agr')||l==='a') return 'Agrario';
+  if(l.includes('ind')||l==='i') return 'Industrial';
+  if(l.includes('comerc')||l==='c') return 'Comercial';
+  return u||'—';
+}
+
+// ── STATS ──────────────────────────────────────────────
+function updateStats(){
+  const done = results.filter(r => r && !r.err);
+  const tSup = done.reduce((a,r)=>a+r.supPar,0);
+  const tCoste = done.reduce((a,r)=>a+(r.coste||0),0);
+  document.getElementById('s-done').textContent = done.length;
+  document.getElementById('s-sup').textContent = tSup>0 ? Math.round(tSup).toLocaleString('es-ES')+' m²' : '—';
+  document.getElementById('s-coste').textContent = tCoste>0 ? fmtEur(tCoste) : '—';
+}
+
+// ── TABLA ──────────────────────────────────────────────
+function initTable(){
+  document.getElementById('tbody').innerHTML = RCS.map((rc,i) =>
+    `<tr id="row${i}">
+      <td style="color:#bbb;font-size:11px">${i+1}</td>
+      <td><span class="mono-dim">${rc}</span></td>
+      <td colspan="6" class="pending">pendiente…</td>
+    </tr>`
+  ).join('');
+}
+
+function rowHTML(i, d){
+  const rcFull = d.rcFull || d.rc;
+  const fichaUrl = `https://www1.sedecatastro.gob.es/CYCBienInmueble/OVCConCiud.aspx?UrbRus=U&RefC=${rcFull}&esBice=&RCBice1=&RCBice2=&DenoBice=&from=OVCBusqueda&pest=rc&RCCompleta=${rcFull}&final=&del=${PRO}&mun=${MUN}`;
+  const spTxt = d.supPar>0 ? d.supPar.toLocaleString('es-ES') : '<span style="color:#ccc">—</span>';
+  const costeTxt = d.coste>0 ? fmtEur(d.coste) : '<span style="color:#ccc">—</span>';
+  const errStyle = d.err ? 'style="color:#c44"' : '';
+  return `
+    <td style="color:#bbb;font-size:11px">${i+1}</td>
+    <td><span class="mono">${d.rc}</span></td>
+    <td title="${d.dir}" ${errStyle}>${d.err ? '⚠ '+d.err : d.dir}</td>
+    <td>${d.uso}</td>
+    <td style="text-align:right">${spTxt}</td>
+    <td style="text-align:right">${d.ant}</td>
+    <td class="coste">${costeTxt}</td>
+    <td style="text-align:center"><a class="ext" href="${fichaUrl}" target="_blank">↗</a></td>`;
+}
+
+function updateRow(i, d){
+  const row = document.getElementById('row'+i);
+  if(row) row.innerHTML = rowHTML(i, d);
+}
+
+function rebuildTable(){
+  const q = document.getElementById('filter').value.toLowerCase();
+  results.forEach((d,i) => {
+    const row = document.getElementById('row'+i);
+    if(!row || !d) return;
+    row.innerHTML = rowHTML(i, d);
+    if(q){
+      const match = d.rc.toLowerCase().includes(q) || d.dir.toLowerCase().includes(q);
+      row.style.display = match ? '' : 'none';
+    }
+  });
+}
+
+function applyFilter(){
+  const q = document.getElementById('filter').value.toLowerCase();
+  results.forEach((d,i) => {
+    const row = document.getElementById('row'+i);
+    if(!row) return;
+    if(!q){ row.style.display=''; return; }
+    const match = d
+      ? (d.rc.toLowerCase().includes(q)||d.dir.toLowerCase().includes(q))
+      : RCS[i].toLowerCase().includes(q);
+    row.style.display = match ? '' : 'none';
+  });
+}
+
+// ── EXPORTS ────────────────────────────────────────────
+function exportCSV(){
+  const rows=[['Nº','Ref. Catastral','Dirección','Uso','Sup. Parcela (m²)','Año Construcción','Coste Obra (€)']];
+  results.forEach((d,i)=>{
+    if(!d) rows.push([i+1,RCS[i],'','','','','']);
+    else rows.push([i+1,d.rc,d.dir,d.uso,d.supPar||'',d.ant,d.coste>0?d.coste.toFixed(2):'']);
+  });
+  const csv=rows.map(r=>r.map(c=>`"${String(c||'').replace(/"/g,'""')}"`).join(';')).join('\n');
+  dl('catastro_vallbonica.csv','\uFEFF'+csv,'text/csv;charset=utf-8');
+}
+
+function exportTXT(){
+  const sep='─'.repeat(75);
+  const lines=["CATASTRO – URBANIZACIÓN VALLBONICA (Vallbona d'Anoia, Barcelona)",sep,''];
+  if(importeProrrateo>0) lines.push(`Importe prorrateado: ${fmtEur(importeProrrateo)}`,'');
+  results.filter(Boolean).forEach((d,n)=>{
+    lines.push(`${String(n+1).padStart(3,'0')}. ${d.rc}`);
+    lines.push(`     Dirección:        ${d.dir}`);
+    lines.push(`     Uso:              ${d.uso}`);
+    lines.push(`     Sup. parcela:     ${d.supPar>0?d.supPar.toLocaleString('es-ES')+' m²':'N/D'}`);
+    lines.push(`     Año construcción: ${d.ant}`);
+    if(d.coste>0) lines.push(`     Coste obra:       ${fmtEur(d.coste)}`);
+    lines.push('');
+  });
+  lines.push(sep);
+  const done=results.filter(r=>r&&!r.err);
+  lines.push(`Total parcelas: ${done.length}`);
+  lines.push(`Sup. total: ${Math.round(done.reduce((a,r)=>a+r.supPar,0)).toLocaleString('es-ES')} m²`);
+  if(importeProrrateo>0) lines.push(`Coste total: ${fmtEur(importeProrrateo)}`);
+  dl('catastro_vallbonica.txt',lines.join('\n'),'text/plain;charset=utf-8');
+}
+
+function dl(name,content,type){
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([content],{type}));
+  a.download=name; a.click();
+}
+
+// ── CONSOLE LOG ────────────────────────────────────────
+function logConsole(n,d){
+  if(d.err){ console.warn(`[${String(n).padStart(3,'0')}] ${d.rc} — ERROR: ${d.err}`); return; }
+  console.log(`%c[${String(n).padStart(3,'0')}] ${d.rc}`,'font-weight:bold',
+    '\n', `Dirección:    ${d.dir}`,
+    '\n', `Uso:          ${d.uso}`,
+    '\n', `Sup. parcela: ${d.supPar>0?d.supPar+' m²':'N/D'}`,
+    '\n', `Año:          ${d.ant}`);
+}
+function logConsoleResumen(){
+  const done=results.filter(r=>r&&!r.err);
+  const tSup=done.reduce((a,r)=>a+r.supPar,0);
+  console.log('%c─────────────────────────────────────','color:#aaa');
+  console.log('%cRESUMEN – Vallbonica','font-weight:bold;font-size:14px');
+  console.log(`Parcelas: ${done.length} | Sup. total: ${Math.round(tSup).toLocaleString('es-ES')} m²`);
+  console.log('%c─────────────────────────────────────','color:#aaa');
+  window.resultados=results;
+}
+
+// ── FORMATO ────────────────────────────────────────────
+// ── ORDENACIÓN ─────────────────────────────────────────
+let sortCol = null, sortDir = 1; // 1=asc, -1=desc
+
+function sortBy(col){
+  if(sortCol === col) sortDir *= -1;
+  else { sortCol = col; sortDir = 1; }
+
+  // Actualizar cabeceras
+  ['idx','rc','dir','uso','supPar','ant','coste'].forEach(c => {
+    const th = document.querySelector(`th[onclick="sortBy('${c}')"]`);
+    if(!th) return;
+    th.className = c === sortCol ? (sortDir===1 ? 'sort-asc' : 'sort-desc') : '';
+  });
+
+  // Ordenar índices de results
+  const indices = results.map((_,i)=>i).filter(i=>results[i]);
+  indices.sort((a,b)=>{
+    const da = results[a], db = results[b];
+    let va, vb;
+    if(col==='idx')    { va=a; vb=b; }
+    else if(col==='supPar'||col==='coste') { va=da[col]||0; vb=db[col]||0; }
+    else if(col==='ant') { va=parseInt(da.ant)||0; vb=parseInt(db.ant)||0; }
+    else { va=(da[col]||'').toLowerCase(); vb=(db[col]||'').toLowerCase(); }
+    if(va<vb) return -sortDir;
+    if(va>vb) return sortDir;
+    return 0;
+  });
+
+  // Reordenar filas en el DOM
+  const tbody = document.getElementById('tbody');
+  indices.forEach((origIdx, newPos) => {
+    const row = document.getElementById('row'+origIdx);
+    if(row){
+      // Actualizar nº de orden visual
+      row.cells[0].textContent = newPos+1;
+      tbody.appendChild(row);
+    }
+  });
+}
+
+function fmtEur(n){
+  return n.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €';
+}
+function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
+
+// ── INICIO ─────────────────────────────────────────────
+initTable();
+if(loadCache()){
+  const done = results.filter(r=>r&&!r.err);
+  document.getElementById('s-done').textContent = done.length;
+  document.getElementById('cache-badge').style.display='inline';
+  setPct(100,`${RCS.length}/${RCS.length}`);
+  log(`Datos cargados de caché (${done.length} parcelas). Puedes prorratear o volver a consultar.`);
+  updateStats();
+  results.forEach((d,i)=>{ if(d) updateRow(i,d); });
+}
+</script>
+</body>
+</html>
