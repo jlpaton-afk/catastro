@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calendario de Entrenamiento 2026</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #ffffff;
+    --surface: #f8f8f8;
+    --surface2: #f0f0f0;
+    --border: #e8e8e8;
+    --border2: #d0d0d0;
+    --text: #1a1a1a;
+    --text-muted: #888;
+    --text-dim: #bbb;
+    --accent: #2563eb;
+    --r1-text: #166534; --r1-badge: #dcfce7; --r1-border: #86efac;
+    --r2-text: #1e40af; --r2-badge: #dbeafe; --r2-border: #93c5fd;
+    --r3-text: #9d174d; --r3-badge: #fce7f3; --r3-border: #f9a8d4;
+    --ef-text: #991b1b; --ef-badge: #fee2e2; --ef-border: #fca5a5;
+    --desc-text: #9ca3af; --desc-badge: #f3f4f6; --desc-border: #e5e7eb;
+    --today-border: #2563eb;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 14px; min-height: 100vh; padding: 1.5rem; }
+
+  /* ── HEADER ── */
+  header { display: flex; align-items: baseline; gap: 1rem; margin-bottom: 1.5rem; border-bottom: 1.5px solid var(--border); padding-bottom: 1.25rem; flex-wrap: wrap; }
+  header h1 { font-family: 'DM Mono', monospace; font-size: clamp(16px, 4vw, 22px); font-weight: 500; color: var(--text); }
+  header span { font-family: 'DM Mono', monospace; font-size: clamp(10px, 2.5vw, 13px); color: var(--text-muted); }
+
+  /* ── LEGEND ── */
+  .legend { display: flex; flex-wrap: wrap; gap: 0.6rem 1rem; margin-bottom: 1.25rem; }
+  .legend-item { display: flex; align-items: center; gap: 7px; font-size: clamp(10px, 2vw, 12px); color: var(--text-muted); font-family: 'DM Mono', monospace; }
+  .legend-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+
+  /* ── WEEK PATTERN ── */
+  .week-pattern { display: flex; gap: 8px; margin-bottom: 1.75rem; flex-wrap: wrap; }
+  .week-block { padding: 10px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; min-width: 0; flex: 1 1 220px; }
+  .week-block-label { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--text-muted); margin-bottom: 8px; letter-spacing: 1px; }
+  .week-block-days { display: flex; gap: 4px; flex-wrap: wrap; }
+  .week-block-day { font-family: 'DM Mono', monospace; font-size: clamp(9px, 1.8vw, 10px); padding: 2px 6px; border-radius: 4px; border: 1px solid transparent; white-space: nowrap; }
+
+  /* ── YEAR NAV ── */
+  .year-nav { display: flex; align-items: center; gap: 1.5rem; margin-bottom: 1.25rem; flex-wrap: wrap; }
+  .year-label { font-family: 'DM Mono', monospace; font-size: clamp(22px, 6vw, 28px); font-weight: 500; color: var(--text); }
+  .month-tabs { display: flex; flex-wrap: wrap; gap: 4px; }
+  .month-tab { font-family: 'DM Mono', monospace; font-size: clamp(9px, 2vw, 11px); padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border2); background: transparent; color: var(--text-muted); cursor: pointer; transition: all 0.15s; }
+  .month-tab:hover { background: var(--surface2); color: var(--text); }
+  .month-tab.active { background: var(--text); color: var(--bg); border-color: var(--text); }
+
+  /* ── STATS ── */
+  .stats { display: flex; gap: 1rem; margin-bottom: 1.25rem; padding: 0.9rem 1rem; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; flex-wrap: wrap; }
+  .stat { display: flex; flex-direction: column; gap: 2px; min-width: 36px; }
+  .stat-val { font-family: 'DM Mono', monospace; font-size: clamp(15px, 3.5vw, 20px); font-weight: 500; }
+  .stat-label { font-size: clamp(8px, 1.8vw, 10px); color: var(--text-muted); font-family: 'DM Mono', monospace; letter-spacing: 0.5px; }
+
+  /* ── CALENDAR GRID ── */
+  .month-title { font-family: 'DM Mono', monospace; font-size: clamp(11px, 2.5vw, 13px); font-weight: 500; color: var(--text); margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 2px; }
+  .week-headers { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 3px; margin-bottom: 3px; }
+  .week-header { font-family: 'DM Mono', monospace; font-size: clamp(8px, 1.8vw, 10px); color: var(--text-dim); text-align: center; padding: 3px 0; letter-spacing: 1px; }
+  .days-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 3px; }
+
+  .day-cell {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: clamp(4px, 1.2vw, 8px);
+    min-height: clamp(60px, 10vw, 84px);
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    cursor: pointer;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    overflow: hidden;
+  }
+  .day-cell:hover { border-color: var(--border2); box-shadow: 0 1px 4px rgba(0,0,0,0.07); }
+  .day-cell.empty { background: transparent; border-color: transparent; cursor: default; box-shadow: none; }
+  .day-cell.today { border-color: var(--today-border) !important; border-width: 1.5px; }
+  .day-cell.has-r1 { border-left: 3px solid var(--r1-border); }
+  .day-cell.has-r2 { border-left: 3px solid var(--r2-border); }
+  .day-cell.has-r3 { border-left: 3px solid var(--r3-border); }
+  .day-cell.has-ef { border-left: 3px solid var(--ef-border); }
+  .day-cell.has-multi { border-left: 3px solid var(--border2); }
+
+  .day-num { font-family: 'DM Mono', monospace; font-size: clamp(8px, 1.8vw, 11px); color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .day-num.today-mark { color: var(--accent); font-weight: 500; }
+
+  .badges { display: flex; gap: 2px; flex-wrap: wrap; }
+  .badge {
+    font-family: 'DM Mono', monospace;
+    font-size: clamp(7px, 1.5vw, 9px);
+    font-weight: 500;
+    padding: 1px 4px;
+    border-radius: 3px;
+    display: inline-block;
+    border: 1px solid transparent;
+    white-space: nowrap;
+  }
+  .badge-r1 { background: var(--r1-badge); color: var(--r1-text); border-color: var(--r1-border); }
+  .badge-r2 { background: var(--r2-badge); color: var(--r2-text); border-color: var(--r2-border); }
+  .badge-r3 { background: var(--r3-badge); color: var(--r3-text); border-color: var(--r3-border); }
+  .badge-ef { background: var(--ef-badge); color: var(--ef-text); border-color: var(--ef-border); }
+  .badge-desc { background: var(--desc-badge); color: var(--desc-text); border-color: var(--desc-border); }
+
+  .session-info { font-size: clamp(7px, 1.4vw, 9px); color: var(--text-dim); line-height: 1.3; overflow: hidden; }
+
+  /* ── HIDE session-info on very small screens ── */
+  @media (max-width: 480px) {
+    .session-info { display: none; }
+    .day-cell { min-height: 52px; }
+    body { padding: 0.75rem; }
+    .week-pattern { display: none; }
+  }
+
+  @media (max-width: 360px) {
+    .legend { display: none; }
+    .stats .stat:nth-child(n+5) { display: none; }
+  }
+
+  /* ── MODAL ── */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.3); z-index: 200; align-items: center; justify-content: center; padding: 1rem; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: var(--bg); border: 1px solid var(--border2); border-radius: 12px; padding: 1.25rem; width: 100%; max-width: 380px; box-shadow: 0 8px 32px rgba(0,0,0,0.12); }
+  .modal-title { font-family: 'DM Mono', monospace; font-size: clamp(13px, 3.5vw, 15px); font-weight: 500; color: var(--text); margin-bottom: 3px; }
+  .modal-sub { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--text-muted); margin-bottom: 1rem; }
+  .modal-sessions { display: flex; flex-direction: column; gap: 8px; margin-bottom: 1rem; }
+  .modal-session-item { padding: 10px 12px; background: var(--surface); border-radius: 7px; border-left: 3px solid var(--border2); }
+  .modal-session-name { font-family: 'DM Mono', monospace; font-size: clamp(11px, 2.8vw, 13px); font-weight: 500; color: var(--text); margin-bottom: 3px; }
+  .modal-session-desc { font-size: clamp(11px, 2.5vw, 12px); color: var(--text-muted); line-height: 1.5; }
+  .modal-session-muscles { font-family: 'DM Mono', monospace; font-size: clamp(9px, 2vw, 11px); color: var(--text-dim); margin-top: 4px; }
+  .modal-close { margin-top: 1rem; width: 100%; padding: 10px; font-family: 'DM Mono', monospace; font-size: 11px; cursor: pointer; border-radius: 7px; background: transparent; border: 1px solid var(--border2); color: var(--text-muted); letter-spacing: 1px; transition: all 0.15s; }
+  .modal-close:hover { background: var(--surface2); color: var(--text); }
+
+  /* ── FOOTER ── */
+  footer { margin-top: 2.5rem; padding-top: 1.25rem; border-top: 1px solid var(--border); font-family: 'DM Mono', monospace; font-size: clamp(9px, 2vw, 10px); color: var(--text-dim); line-height: 2; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>ENTRENAMIENTO</h1>
+  <span>Calendario anual 2026</span>
+</header>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:var(--r1-border)"></div> R1 — Espalda · Hombro post. · Bíceps</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--r2-border)"></div> R2 — Pecho · Hombro · Tríceps</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--r3-border)"></div> R3 — Piernas</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--ef-border)"></div> EF — Educación física (tren superior)</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--desc-border)"></div> Desc — Descanso</div>
+</div>
+
+<div class="week-pattern">
+  <div class="week-block">
+    <div class="week-block-label">SEMANA A</div>
+    <div class="week-block-days">
+      <span class="week-block-day" style="background:var(--ef-badge);color:var(--ef-text);border-color:var(--ef-border)">LUN: EF+R2</span>
+      <span class="week-block-day" style="background:var(--desc-badge);color:var(--desc-text);border-color:var(--desc-border)">MAR: Desc</span>
+      <span class="week-block-day" style="background:var(--r1-badge);color:var(--r1-text);border-color:var(--r1-border)">MIÉ: R1</span>
+      <span class="week-block-day" style="background:var(--ef-badge);color:var(--ef-text);border-color:var(--ef-border)">JUE: EF</span>
+      <span class="week-block-day" style="background:var(--desc-badge);color:var(--desc-text);border-color:var(--desc-border)">VIE: Desc</span>
+      <span class="week-block-day" style="background:var(--r2-badge);color:var(--r2-text);border-color:var(--r2-border)">SÁB: R2</span>
+      <span class="week-block-day" style="background:var(--r3-badge);color:var(--r3-text);border-color:var(--r3-border)">DOM: R3</span>
+    </div>
+  </div>
+  <div class="week-block">
+    <div class="week-block-label">SEMANA B</div>
+    <div class="week-block-days">
+      <span class="week-block-day" style="background:var(--ef-badge);color:var(--ef-text);border-color:var(--ef-border)">LUN: EF+R1</span>
+      <span class="week-block-day" style="background:var(--desc-badge);color:var(--desc-text);border-color:var(--desc-border)">MAR: Desc</span>
+      <span class="week-block-day" style="background:var(--r2-badge);color:var(--r2-text);border-color:var(--r2-border)">MIÉ: R2</span>
+      <span class="week-block-day" style="background:var(--ef-badge);color:var(--ef-text);border-color:var(--ef-border)">JUE: EF</span>
+      <span class="week-block-day" style="background:var(--desc-badge);color:var(--desc-text);border-color:var(--desc-border)">VIE: Desc</span>
+      <span class="week-block-day" style="background:var(--r1-badge);color:var(--r1-text);border-color:var(--r1-border)">SÁB: R1</span>
+      <span class="week-block-day" style="background:var(--r3-badge);color:var(--r3-text);border-color:var(--r3-border)">DOM: R3</span>
+    </div>
+  </div>
+</div>
+
+<div class="year-nav">
+  <div class="year-label">2026</div>
+  <div class="month-tabs" id="monthTabs"></div>
+</div>
+
+<div class="stats" id="statsBar"></div>
+<div id="calendarContainer"></div>
+
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <div class="modal-title" id="modalTitle"></div>
+    <div class="modal-sub" id="modalSub"></div>
+    <div class="modal-sessions" id="modalSessions"></div>
+    <button class="modal-close" onclick="closeModal()">CERRAR</button>
+  </div>
+</div>
+
+<footer>
+  Semana A: LUN EF+R2 · MIÉ R1 · SÁB R2 &nbsp;|&nbsp; Semana B: LUN EF+R1 · MIÉ R2 · SÁB R1<br>
+  Fijos: JUE→EF · MAR/VIE→Desc · DOM→R3 · Anclaje semana A: lunes 5 ene 2026
+</footer>
+
+<script>
+const MONTHS_ES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+const DAYS_ES=['LUN','MAR','MIÉ','JUE','VIE','SÁB','DOM'];
+
+const SESSION_INFO={
+  R1:{label:'R1',cls:'r1',name:'R1 — Gimnasio, pesas y máquinas',desc:'Sesión de fuerza con pesas y máquinas.',muscles:'Espalda · Hombro posterior · Bíceps'},
+  R2:{label:'R2',cls:'r2',name:'R2 — Gimnasio, pesas y máquinas',desc:'Sesión de fuerza con pesas y máquinas.',muscles:'Pecho · Hombro · Tríceps'},
+  R3:{label:'R3',cls:'r3',name:'R3 — Gimnasio, pesas y máquinas',desc:'Sesión de fuerza con pesas y máquinas.',muscles:'Piernas'},
+  EF:{label:'EF',cls:'ef',name:'EF — Educación Física',desc:'Ejercicios de tren superior usando el propio cuerpo.',muscles:'Tren superior (sin material)'},
+  Desc:{label:'Desc',cls:'desc',name:'Descanso',desc:'Día de descanso y recuperación activa.',muscles:''}
+};
+
+const BORDER_COLORS={R1:'var(--r1-border)',R2:'var(--r2-border)',R3:'var(--r3-border)',EF:'var(--ef-border)',Desc:'var(--desc-border)'};
+const ANCHOR=new Date(2026,0,5); ANCHOR.setHours(0,0,0,0);
+
+function getMondayOf(date){const d=new Date(date);d.setHours(0,0,0,0);const day=d.getDay();d.setDate(d.getDate()+(day===0?-6:1-day));return d;}
+function isWeekA(date){const mon=getMondayOf(date);const dw=Math.round((mon-ANCHOR)/(7*24*3600*1000));return((dw%2)+2)%2===0;}
+function getSessions(date){
+  const jsDay=date.getDay(),monDay=jsDay===0?6:jsDay-1,wA=isWeekA(date);
+  if(monDay===1)return['Desc'];
+  if(monDay===3)return['EF'];
+  if(monDay===4)return['Desc'];
+  if(monDay===6)return['R3'];
+  if(monDay===0)return wA?['EF','R2']:['EF','R1'];
+  if(monDay===2)return wA?['R1']:['R2'];
+  if(monDay===5)return wA?['R2']:['R1'];
+  return['Desc'];
+}
+function firstDayOfMonth(y,m){const d=new Date(y,m,1).getDay();return d===0?6:d-1;}
+function daysInMonth(y,m){return new Date(y,m+1,0).getDate();}
+
+const today=new Date();
+let currentMonth=today.getFullYear()===2026?today.getMonth():0;
+
+function renderStats(month){
+  const year=2026,days=daysInMonth(year,month);
+  let c={R1:0,R2:0,R3:0,EF:0,Desc:0};
+  for(let d=1;d<=days;d++) getSessions(new Date(year,month,d)).forEach(s=>c[s]++);
+  const tr=c.R1+c.R2+c.R3+c.EF;
+  document.getElementById('statsBar').innerHTML=`
+    <div class="stat"><div class="stat-val" style="color:var(--text)">${days}</div><div class="stat-label">DÍAS</div></div>
+    <div class="stat"><div class="stat-val" style="color:var(--accent)">${tr}</div><div class="stat-label">SESIONES</div></div>
+    <div class="stat"><div class="stat-val" style="color:var(--r1-text)">${c.R1}</div><div class="stat-label">R1</div></div>
+    <div class="stat"><div class="stat-val" style="color:var(--r2-text)">${c.R2}</div><div class="stat-label">R2</div></div>
+    <div class="stat"><div class="stat-val" style="color:var(--r3-text)">${c.R3}</div><div class="stat-label">R3</div></div>
+    <div class="stat"><div class="stat-val" style="color:var(--ef-text)">${c.EF}</div><div class="stat-label">EF</div></div>
+    <div class="stat"><div class="stat-val" style="color:var(--desc-text)">${c.Desc}</div><div class="stat-label">DESCANSO</div></div>`;
+}
+
+function shortLabel(sessions){
+  return sessions.map(s=>({R1:'Espalda · Bíceps',R2:'Pecho · Tríceps',R3:'Piernas',EF:'Ed. Física',Desc:''}[s])).filter(Boolean).join(' + ');
+}
+function accentClass(sessions){
+  if(sessions[0]==='Desc')return'';
+  if(sessions.length>1)return'has-multi';
+  return{R1:'has-r1',R2:'has-r2',R3:'has-r3',EF:'has-ef'}[sessions[0]]||'';
+}
+
+function renderMonth(month){
+  const year=2026,days=daysInMonth(year,month),firstDay=firstDayOfMonth(year,month);
+  let html=`<div class="month-title">${MONTHS_ES[month]} ${year}</div>`;
+  html+=`<div class="week-headers">${DAYS_ES.map(d=>`<div class="week-header">${d}</div>`).join('')}</div>`;
+  html+=`<div class="days-grid">`;
+  for(let i=0;i<firstDay;i++) html+=`<div class="day-cell empty"></div>`;
+  for(let d=1;d<=days;d++){
+    const date=new Date(year,month,d);
+    const isToday=today.getFullYear()===year&&today.getMonth()===month&&today.getDate()===d;
+    const sessions=getSessions(date),wA=isWeekA(date);
+    const badgesHtml=sessions.map(s=>`<span class="badge badge-${SESSION_INFO[s].cls}">${SESSION_INFO[s].label}</span>`).join('');
+    const infoText=shortLabel(sessions);
+    html+=`<div class="day-cell ${accentClass(sessions)} ${isToday?'today':''}" onclick='openModal(${JSON.stringify(sessions)},"${d} ${MONTHS_ES[month]}",${wA})'>
+      <span class="day-num ${isToday?'today-mark':''}">${d}${isToday?' ·HOY':''}</span>
+      <div class="badges">${badgesHtml}</div>
+      ${infoText?`<span class="session-info">${infoText}</span>`:''}
+    </div>`;
+  }
+  const rem=(firstDay+days)%7===0?0:7-(firstDay+days)%7;
+  for(let i=0;i<rem;i++) html+=`<div class="day-cell empty"></div>`;
+  html+=`</div>`;
+  document.getElementById('calendarContainer').innerHTML=html;
+}
+
+function openModal(sessions,dateStr,wA){
+  document.getElementById('modalTitle').textContent=dateStr;
+  document.getElementById('modalSub').textContent=`Semana ${wA?'A':'B'}`;
+  document.getElementById('modalSessions').innerHTML=sessions.map(s=>{
+    const info=SESSION_INFO[s];
+    return`<div class="modal-session-item" style="border-left-color:${BORDER_COLORS[s]}">
+      <div class="modal-session-name">${info.name}</div>
+      <div class="modal-session-desc">${info.desc}</div>
+      ${info.muscles?`<div class="modal-session-muscles">${info.muscles}</div>`:''}
+    </div>`;
+  }).join('');
+  document.getElementById('modal').classList.add('open');
+}
+function closeModal(){document.getElementById('modal').classList.remove('open');}
+document.getElementById('modal').addEventListener('click',function(e){if(e.target===this)closeModal();});
+
+function buildTabs(){
+  const container=document.getElementById('monthTabs');
+  MONTHS_ES.forEach((name,i)=>{
+    const btn=document.createElement('button');
+    btn.className='month-tab'+(i===currentMonth?' active':'');
+    btn.textContent=name.substring(0,3).toUpperCase();
+    btn.onclick=()=>switchMonth(i);
+    container.appendChild(btn);
+  });
+}
+function switchMonth(i){
+  currentMonth=i;
+  document.querySelectorAll('.month-tab').forEach((t,idx)=>t.classList.toggle('active',idx===i));
+  renderMonth(i); renderStats(i);
+}
+buildTabs(); switchMonth(currentMonth);
+</script>
+</body>
+</html>
